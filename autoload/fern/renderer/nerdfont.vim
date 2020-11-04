@@ -73,20 +73,44 @@ function! s:get_node_symbol(node) abort
   return symbol
 endfunction
 
+let s:has_nerdfont = 0
+let s:has_devicons = 0
+
 " Check if nerdfont has installed or not
 try
   call nerdfont#find('')
+  let s:has_nerdfont = 1
+catch /^Vim\%((\a\+)\)\=:E117:/
+endtry
+
+" Check if vim-devicons has installed or not
+try
+  call WebDevIconsGetFileTypeSymbol('')
+  let s:has_devicons = 1
+catch /^Vim\%((\a\+)\)\=:E117:/
+endtry
+
+if s:has_nerdfont
   function! s:find(bufname, isdir) abort
     return nerdfont#find(a:bufname, a:isdir) . g:fern#renderer#nerdfont#padding
   endfunction
-catch /^Vim\%((\a\+)\)\=:E117:/
+elseif s:has_devicons
+  function! s:find(bufname, isdir) abort
+    if a:isdir is# 'open'
+      let symbol = g:DevIconsDefaultFolderOpenSymbol
+    else
+      let symbol = WebDevIconsGetFileTypeSymbol(a:bufname, a:isdir is# 'close')
+    endif
+    return symbol . g:fern#renderer#nerdfont#padding
+  endfunction
+else
   function! s:find(bufname, isdir) abort
     return a:isdir is# 0 ? '|  ' : a:isdir ==# 'open' ? '|- ' : '|+ '
   endfunction
   call fern#logger#error(
-        \ 'nerdfont.vim is not installed. fern-renderer-nerdfont.vim requires nerdfont.vim',
+        \ 'nerdfont.vim or vim-devicons is not installed. fern-renderer-nerdfont.vim requires nerdfont.vim or vim-devicons',
         \)
-endtry
+endif
 
 call s:Config.config(expand('<sfile>:p'), {
       \ 'leading': ' ',
